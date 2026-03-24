@@ -6,6 +6,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * `scripts\import_simple.py` can be used for a quick start import, opened in the Scripting tab of Blender.<br>
 * `nif_folder` can be pointed to the output of Export Cells or any other folder containing NIF files.
+* The import will usually require further merging and hierarchy simplification to make it more usable.
 
 # Features
 
