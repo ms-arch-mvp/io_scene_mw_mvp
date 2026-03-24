@@ -4,8 +4,8 @@
 
 To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
 
-`scripts\import_simple.py` can be used for a quick start import, opened in the Scripting tab of Blender. 
-`nif_folder` can be pointed to the output of Export Cells or any other folder containing NIF files.
+`scripts\import_simple.py` can be used for a quick start import, opened in the Scripting tab of Blender.<br>
+* `nif_folder` can be pointed to the output of Export Cells or any other folder containing NIF files.
 
 # Features
 
