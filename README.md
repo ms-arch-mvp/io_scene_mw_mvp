@@ -33,6 +33,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Added a check for ignore\_animations at the start of create\_vertex\_morphs()
 * Ignoring animations is required, otherwise imports will fail. This extra check ensures no animations at all are imported.
 
+### NiStencilProperty Modification
+
+* Implemented a safe\_enum helper function to handle invalid enum values, prevents crashes.
+
 ### Ignore\_Armatures
 
 * Added ignore\_armatures setting. This is an option to not import armatures for larger scenes.\
@@ -79,10 +83,6 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Include path: if non default. Adds the path to the folder of the base texture.
 * This option has been provided and is false by default. It prevents deduplication when the texture names but paths are different. In many cases, deduplicating these is actually useful because these textures are often identical and are duplicated. It can also help unify materials to one source of truth for the textures.
-
-### NiStencilProperty
-
-* Implemented a safe\_enum helper function to handle invalid enum values, prevents crashes.
 
 ### Proxy Mode
 
