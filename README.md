@@ -28,7 +28,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added light imports. This imports lights with the diffuse color and intensity. Lights can be exported using glTF and enablign the include Punctual Lights option.
 
-### Ignore\_Animations
+### Ignore\_Animations Modification
 
 * Added a check for ignore\_animations at the start of create\_vertex\_morphs()
 * Ignoring animations is required, otherwise imports will fail. This extra check ensures no animations at all are imported.
@@ -47,6 +47,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 ### Ignore\_Shadow\_Meshes
 
 * Added ignore\_shadow\_meshes setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
+
+### Ignore\_NiSwitchNode\_OFF
+
+* Ignores nodes named OFF under NiSwitchNodes, which can simplify objects that may have duplicate geometry between switch states.
 
 ### Root Name
 
