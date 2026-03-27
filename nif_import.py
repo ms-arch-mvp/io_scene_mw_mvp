@@ -98,10 +98,12 @@ class Importer:
     ignore_animations = False
     # new additions:
     ignore_armatures = False
-    ignore_billboards = False  
+    ignore_billboards = False
+    ignore_shadow_meshes = False
+    ignore_NiSwitchNode_OFF = False
     always_use_file_name_for_root_name = False
-    proxy_mode = False
     use_texture_path_in_material_name = False
+    proxy_mode = False
 
     def __init__(self, filepath, config):
         vars(self).update(config)
@@ -191,7 +193,11 @@ class Importer:
                     for child in node.source.children:
                         if not (child and isinstance(child, nif.NiAVObject)):
                             continue
-                        
+
+                        if self.ignore_NiSwitchNode_OFF and isinstance(node.source, nif.NiSwitchNode):
+                            if child.name.upper() == "OFF":
+                                continue
+
                         child_node = SceneNode(self, child, node)
 
                         # Proxy Mode: Each child of the container root starts a fresh object branch
