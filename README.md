@@ -80,6 +80,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Include emissive: if non default. Default is #000000
 * Include alpha: if non default. Combines NiAlphaProperty blending mode and NiMaterialProperty (Opacity)
 * Exclude Decal\_1, Decal\_2, etc. These make the material name too long and are generally not very useful. These may be used for textures such as water caustics.
+* The goal is to maintain a level of uniqueness when deduplicating materials, while still grouping materials where appropriate.
 
 **use\_texture\_path\_in\_material\_name**
 
