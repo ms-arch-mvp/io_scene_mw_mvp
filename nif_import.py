@@ -100,7 +100,7 @@ class Importer:
     ignore_armatures = False
     ignore_billboards = False
     ignore_shadow_meshes = False
-    ignore_NiSwitchNode_OFF = False
+    ignore_switch_names = ""
     always_use_file_name_for_root_name = False
     use_texture_path_in_material_name = False
     proxy_mode = False
@@ -115,6 +115,7 @@ class Importer:
         self.colliders = collections.defaultdict(set)
         self.active_collection = bpy.context.view_layer.active_layer_collection.collection
         self.filepath = pathlib.Path(filepath)
+        self.ignored_switch_names = {name.strip().upper() for name in str(self.ignore_switch_names).split(",") if name.strip()}
 
     def execute(self):
         data = nif.NiStream()
@@ -194,8 +195,8 @@ class Importer:
                         if not (child and isinstance(child, nif.NiAVObject)):
                             continue
 
-                        if self.ignore_NiSwitchNode_OFF and isinstance(node.source, nif.NiSwitchNode):
-                            if child.name.upper() == "OFF":
+                        if self.ignored_switch_names and isinstance(node.source, nif.NiSwitchNode):
+                            if child.name.upper() in self.ignored_switch_names:
                                 continue
 
                         child_node = SceneNode(self, child, node)
