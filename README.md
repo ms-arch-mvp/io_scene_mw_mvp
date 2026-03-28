@@ -39,7 +39,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Ignore\_Armatures
 
-* Added ignore\_armatures setting. This is an option to not import armatures for larger scenes.\
+* Added ignore\_armatures setting. This is an option to not import armatures for larger scenes.
 * Added to nif\_import.py and operators/import\_scene.py
 * This is required as multiple armatures are not yet supported by the plugin.
 
