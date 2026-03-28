@@ -52,7 +52,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added ignore\_shadow\_meshes setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
 
-### Ignore\_switch\_names
+### Ignore\_Switch\_Names
 
 * Ignores nodes under switches with given names to simplify NIFs
 * Example: ignore_switch_names = "OFF, HARVESTED, Closed"
