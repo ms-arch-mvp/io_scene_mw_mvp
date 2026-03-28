@@ -60,7 +60,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Root Name
 
-* Added always\_use\_file\_name\_for\_root\_name.\
+* Added always\_use\_file\_name\_for\_root\_name.
 * Added to nif\_import.py and operators/import\_scene.py
 * Uses the file name when no root name is present (such as when using exporters from Morrowind) or if always\_use\_file\_name\_for\_root\_name = True
 
