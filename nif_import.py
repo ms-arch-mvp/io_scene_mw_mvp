@@ -474,7 +474,16 @@ class Importer:
         yield from map(self.get, self.armatures[root.source])
 
     def get_root_output(self, roots):
-        return roots[0].output.id_data if roots else None
+        if not roots:
+            return None
+        root_out = roots[0].output
+        if root_out is None:
+            print("No root object created; skipping active object assignment")
+            return None
+        try:
+            return root_out.id_data
+        except AttributeError:
+            return root_out
 
     def get_armature_node(self):
         if self.ignore_armatures:
