@@ -8,6 +8,11 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * `nif_folder` can be pointed to the output of Export Cells or any other folder containing NIF files.
 * The import will usually require further merging and hierarchy simplification to make it more usable.
 
+## Requirements
+
+* [Blender 5](https://www.blender.org/)
+* [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw)
+
 # Features
 
 ### Folder Normalization
