@@ -58,6 +58,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Example: ignore_switch_names = "OFF, HARVESTED, Closed"
 * Should be considered for Glow in the Dahrk, Graphic Herbalism etc.
 
+### Filter\_Best\_LOD
+
+* Only imports the first LOD branch. 
+
 ### Root Name
 
 * Added always\_use\_file\_name\_for\_root\_name.
