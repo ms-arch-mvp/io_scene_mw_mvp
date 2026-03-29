@@ -16,6 +16,9 @@ for nif_file in nif_files:
         ignore_armatures = True,
         ignore_billboards = True,
         ignore_collision_nodes = True,
+        ignore_switch_names = "OFF, HARVESTED, Closed",
+        filter_best_lod = True,
         always_use_file_name_for_root_name = False,
+        use_texture_path_in_material_name = False,
         proxy_mode=False,
     )
