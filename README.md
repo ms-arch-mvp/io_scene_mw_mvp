@@ -73,6 +73,11 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Added to nif\_import.py and operators/import\_scene.py
 * Uses the file name when no root name is present (such as when using exporters from Morrowind) or if always\_use\_file\_name\_for\_root\_name = True
 
+### Empty Root Safeguard
+
+* Added safe guard when root output is missing.
+* This can happen if the NIF imports nothing, e.g. the NIF only contains a billboard node that is ignored. Instead of erroring, it is handled.
+
 ### No Texture Material Names
 
 * Added handling of material name with no textures when used with use\_existing\_materials
