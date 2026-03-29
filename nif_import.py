@@ -101,6 +101,7 @@ class Importer:
     ignore_billboards = False
     ignore_shadow_meshes = False
     ignore_switch_names = ""
+    filter_best_lod = False
     always_use_file_name_for_root_name = False
     use_texture_path_in_material_name = False
     proxy_mode = False
@@ -191,7 +192,11 @@ class Importer:
             if self.process(node):
                 self.history[node.source].add(node)
                 if hasattr(node.source, "children"):
-                    for child in node.source.children:
+                    children = node.source.children
+                    if self.filter_best_lod and isinstance(node.source, nif.NiLODNode):
+                        children = children[:1]
+
+                    for child in children:
                         if not (child and isinstance(child, nif.NiAVObject)):
                             continue
 
