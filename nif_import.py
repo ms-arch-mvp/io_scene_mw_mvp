@@ -1571,10 +1571,36 @@ class Animation(SceneNode):
 
         for sources, data_path in channels.items():
             for i, uv_data in enumerate(sources):
+                # skip empty or invalid key data
+                try:
+                    nkeys = len(uv_data.keys)
+                except Exception:
+                    continue
+                if nkeys == 0:
+                    continue
+
+                # coerce to a contiguous float32 numpy array of shape (n,2)
+                try:
+                    arr2 = np.asarray(uv_data.keys[:, :2], dtype=np.float32)
+                except Exception:
+                    print(f"Warning: Invalid UV key data for {self.name}, channel {i}; skipping UV animation")
+                    continue
+
+                if arr2.ndim != 2 or arr2.shape[0] != nkeys or arr2.shape[1] != 2:
+                    print(f"Warning: UV key shape mismatch for {self.name}, channel {i}; skipping UV animation")
+                    continue
+
+                flat = arr2.ravel()
+
                 # build blender fcurves
                 fc = self.animation.create_fcurves(action, data_path, index=i, action_group=uv_name)
-                fc.keyframe_points.add(len(uv_data.keys))
-                fc.keyframe_points.foreach_set("co", uv_data.keys[:, :2].ravel())
+                fc.keyframe_points.add(nkeys)
+                try:
+                    fc.keyframe_points.foreach_set("co", flat)
+                except RuntimeError as e:
+                    print(f"Warning: Failed to set UV keyframe points for {self.name}: {e}")
+                    continue
+
                 self.create_interpolation_data(uv_data, fc)
                 fc.update()
 
