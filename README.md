@@ -33,14 +33,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added light imports. This imports lights with the diffuse color and intensity. Lights can be exported using glTF and enablign the include Punctual Lights option.
 
-### Ignore\_Animations Modification
+### Ignore\_Animations
 
 * Added a check for ignore\_animations at the start of create\_vertex\_morphs()
 * Ignoring animations is required, otherwise imports will fail. This extra check ensures no animations at all are imported.
-
-### NiStencilProperty Modification
-
-* Implemented a safe\_enum helper function to handle invalid enum values, prevents crashes.
 
 ### Ignore\_Armatures
 
@@ -77,6 +73,14 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added safe guard when root output is missing.
 * This can happen if the NIF imports nothing, e.g. the NIF only contains a billboard node that is ignored. Instead of erroring, it is handled.
+
+### Create\_UV\_Controller Safeguard
+
+* Adds validation/coercion around UV key arrays to prevent crashes.
+
+### NiStencilProperty Safeguard
+
+* Implemented a safe\_enum helper function to handle invalid enum values, prevents crashes.
 
 ### No Texture Material Names
 
