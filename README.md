@@ -40,38 +40,42 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Ignore\_Animations
 
-* Added a check for `ignore\_animations` at the start of `create\_vertex\_morphs()`
+* Added a check for `ignore_animations` at the start of `create_vertex_morphs()`
 
 ### Ignore\_Armatures
 
-* Added ignore\_armatures setting. This is an option to not import armatures for larger scenes.
+* Added `ignore_armatures` setting.
+* This is an option to not import armatures for larger scenes.
 
 ### Ignore\_Billboards
 
-* Added ignore\_billboards as a new setting.
+* Added `ignore_billboards` as a new setting.
 * NiBillboardNodes can now included on import, as these can contain geometry and effects.
 
 ### Ignore\_Emissive\_Color
 
-* Added ignore\_emissive\_color setting. This prevents the emissive color from being imported and can be used to normalize the appearance of meshes, as the Blender Morrowind Plugin does not handle the emissive color correctly in the renderer.
+* Added `ignore_emissive_color` setting. This prevents the emissive color from being imported and can be used to normalize the appearance of meshes, as the Blender Morrowind Plugin does not handle the emissive color correctly in the renderer.
 
 ### Ignore\_Shadow\_Meshes
 
-* Added ignore\_shadow\_meshes setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
+* Added `ignore_shadow_meshes` setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
 
 ### Ignore\_Nodes
 
+* Added `ignore_nodes` setting.
 * Ignore any node and its subtree by name
 * Example: `ignore_nodes = "Lightning"`
 
 ### Ignore\_Nodes\_Under\_Switches
 
+* Added `ignore_nodes_under_switches` setting.
 * Ignores children of a NiSwitchNode by name.
 * Example: `ignore_nodes_under_switches = "OFF, HARVESTED, Closed"`
 * Should be considered for Glow in the Dahrk, Graphic Herbalism etc.
 
 ### Filter\_Best\_LOD
 
+* Added `filter_best_lod` setting.
 * Only imports the first LOD branch. 
 
 ### Empty Root Safeguard
@@ -81,7 +85,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Create\_UV\_Controller Safeguard
 
-* Adds validation/coercion around UV key arrays to prevent crashes.
+* Added validation/coercion around UV key arrays to prevent crashes.
 
 ### NiStencilProperty Safeguard
 
@@ -111,9 +115,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
  
 ### Use\_Texture\_Path\_In\_Material\_Name
 
-* Include path: if non default. Adds the path to the folder of the base texture.
+* Include `path:` if non default. Adds the path to the folder of the base texture.
 * This option has been provided and is false by default. It prevents deduplication when the texture names but paths are different. In many cases, deduplicating these is actually useful because these textures are often identical and are duplicated. It can also help unify materials to one source of truth for the textures.
 
 ### Proxy Mode
 
+* Added `proxy_mode` setting.
 * Imports the file as cubes for the first mesh in every nif for fast imports, debugs and processing.
