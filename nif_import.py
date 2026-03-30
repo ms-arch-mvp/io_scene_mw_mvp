@@ -99,6 +99,7 @@ class Importer:
     # new additions:
     ignore_armatures = False
     ignore_billboards = False
+    ignore_emissive_color = False
     ignore_shadow_meshes = False
     ignore_switch_names = ""
     filter_best_lod = False
@@ -1106,7 +1107,9 @@ class Material(SceneNode):
         bl_prop.ambient_color[:3] = ni_prop.ambient_color
         bl_prop.diffuse_color[:3] = ni_prop.diffuse_color
         bl_prop.specular_color[:3] = ni_prop.specular_color
-        bl_prop.emissive_color[:3] = ni_prop.emissive_color
+        # Respect importer option to ignore emissive color
+        if not getattr(self.importer, "ignore_emissive_color", False):
+            bl_prop.emissive_color[:3] = ni_prop.emissive_color
         # Material Shine
         bl_prop.shine = ni_prop.shine
         # Material Alpha
@@ -1253,15 +1256,16 @@ class Material(SceneNode):
                 )
                 names["diffuse"] = hex_color
             
-            # Check emissive color
-            emissive = ni_material.emissive_color[:3]
-            if not np.allclose(emissive, [0.0, 0.0, 0.0], rtol=0, atol=1e-6):
-                hex_color = "#{:02x}{:02x}{:02x}".format(
-                    int(emissive[0] * 255),
-                    int(emissive[1] * 255),
-                    int(emissive[2] * 255)
-                )
-                names["emissive"] = hex_color
+            # Check emissive color (skip if importer option requests it)
+            if not getattr(self.importer, "ignore_emissive_color", False):
+                emissive = ni_material.emissive_color[:3]
+                if not np.allclose(emissive, [0.0, 0.0, 0.0], rtol=0, atol=1e-6):
+                    hex_color = "#{:02x}{:02x}{:02x}".format(
+                        int(emissive[0] * 255),
+                        int(emissive[1] * 255),
+                        int(emissive[2] * 255)
+                    )
+                    names["emissive"] = hex_color
             
             # Check alpha
             if not np.isclose(ni_material.alpha, 1.0, rtol=0, atol=1e-6):
