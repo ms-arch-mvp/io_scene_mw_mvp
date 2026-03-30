@@ -1,5 +1,9 @@
 <h1 align="center">Morrowind Blender Plugin MVP Scripts</h1>
 
+<p align="center">
+  <a href="https://ms-arch.gitbook.io/morrowind-visualisation-project/io_scene_mw_mvp/functions">Documentation</a>
+</p>
+
 These are modified import scripts for the [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw). Several additional nodes are included, and the default settings of the importer are to include all handled nodes. Ignore settings can be set to filter the nodes. There are also several safeguards that aim to prevent the import from ever crashing. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names.
 
 The [Morrowind Visusalisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) and associated tools are reliant on these scripts.
@@ -14,114 +18,3 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * [Blender 5](https://www.blender.org/)
 * [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw)
-
-# Features
-
-### Folder Normalization
-
-* The exporter uses paths to NIFs and these need to be normalized so they are consistent. The references in Morrowind do not have consistency in terms of case or even forward slashes vs backslashes. Normalization assumes forward slashes and lower case.
-* It also takes prefixes of up to 3 characters and makes them lower case, otherwise this is inconsistent.
-* The rest cannot be normalized without losing the casing, which would make names less readable.
-
-### Name Sanitization
-
-* Added name sanitization to remove unicode characters. This is enables safe imports as otherwise errors may be caused by non unicode characters in NIF files.
-
-### Root Name
-
-* Uses the file name when no root name is present (such as when using exporters from Morrowind) or if `always\_use\_file\_name\_for\_root\_name = True`
-
-### Spatial Object Filtering
-
-* This ensures that only objects with spatial transformations (NiAVObject) are processed as scene nodes, preventing the AttributeError when encountering property blocks at the root or within child lists.
-
-### Lights
-
-* Added light imports.
-* Imports lights with the diffuse color and intensity.
-
-### Ignore\_Animations
-
-* Added a check for `ignore_animations` at the start of `create_vertex_morphs()`
-
-### Ignore\_Armatures
-
-* Added `ignore_armatures` setting.
-* This is an option to not import armatures for larger scenes.
-
-### Ignore\_Billboards
-
-* Added `ignore_billboards` as a new setting.
-* NiBillboardNodes can now included on import, as these can contain geometry and effects.
-
-### Ignore\_Emissive\_Color
-
-* Added `ignore_emissive_color` setting. This prevents the emissive color from being imported and can be used to normalize the appearance of meshes, as the Blender Morrowind Plugin does not handle the emissive color correctly in the renderer.
-
-### Ignore\_Shadow\_Meshes
-
-* Added `ignore_shadow_meshes` setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
-
-### Ignore\_Nodes
-
-* Added `ignore_nodes` setting.
-* Ignore any node and its subtree by name
-* Example: `ignore_nodes = "Lightning"`
-
-### Ignore\_Nodes\_Under\_Switches
-
-* Added `ignore_nodes_under_switches` setting.
-* Ignores children of a NiSwitchNode by name.
-* Example: `ignore_nodes_under_switches = "OFF, HARVESTED, Closed"`
-* Should be considered for Glow in the Dahrk, Graphic Herbalism etc.
-
-### Filter\_Best\_LOD
-
-* Added `filter_best_lod` setting.
-* Imports the first LOD branch only.
-* Checks if the NiLODNode structure is valid with at least two NiNode children.
-
-### Empty Root Safeguard
-
-* Added safe guard when root output is missing.
-* This can happen if the NIF imports nothing, e.g. the NIF only contains a billboard node that is ignored. Instead of erroring, it is handled.
-
-### Create\_UV\_Controller Safeguard
-
-* Added validation/coercion around UV key arrays to prevent crashes.
-
-### NiStencilProperty Safeguard
-
-* Implemented a safe\_enum helper function to handle invalid enum values, prevents crashes.
-
-### No Texture Material Names
-
-* Added handling of material name with no textures when used with use\_existing\_materials
-* Previously, this would just fallback to generic material naming which does not help distinguish materials. Now, it falls back to the material property.
-
-### Material Names Inclusions
-
-* Various inclusions and exclusions to make material name more specific.
-* Include `diffuse:` if non default. Default is `#ffffff`
-  \
-  or
-  \
-  Include `diffuse:Col` if the material is set to use Vertex Colors
-* Include `emissive:` if non default. Default is `#000000`
-* Include `alpha:` if non default. Combines NiAlphaProperty blending mode and NiMaterialProperty (Opacity)
-* Exclude `decal\_1`, `decal\_2`, etc. These make the material name too long and are generally not very useful. These may be used for textures such as water caustics.
-* The goal is to maintain a level of uniqueness when deduplicating materials, while still grouping materials where appropriate.
-
-### Use\_Texture\_Fallbacks
-
-* Mimics the standard behaviour of Morrowind: if it doesn't find DDS textures, then it looks for TGA, then BMP.
- 
-### Use\_Texture\_Path\_In\_Material\_Name
-
-* Include `path:` if non default. Adds the path to the folder of the base texture.
-* This option has been provided and is false by default. It prevents deduplication when the texture names but paths are different. In many cases, deduplicating these is actually useful because these textures are often identical and are duplicated. It can also help unify materials to one source of truth for the textures.
-
-### Proxy Mode
-
-* Added `proxy_mode` setting.
-* Imports the file as cubes for the first mesh in every nif for fast imports, debugs and processing.
