@@ -25,6 +25,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added name sanitization to remove unicode characters. This is enables safe imports as otherwise errors may be caused by non unicode characters in .nif files.
 
+### Root Name
+
+* Uses the file name when no root name is present (such as when using exporters from Morrowind) or if always\_use\_file\_name\_for\_root\_name = True
+
 ### Spatial Object Filtering
 
 * This ensures that only objects with spatial transformations (NiAVObject) are processed as scene nodes, preventing the AttributeError when encountering property blocks at the root or within child lists.
@@ -71,12 +75,6 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 ### Filter\_Best\_LOD
 
 * Only imports the first LOD branch. 
-
-### Root Name
-
-* Added always\_use\_file\_name\_for\_root\_name.
-* Added to nif\_import.py and operators/import\_scene.py
-* Uses the file name when no root name is present (such as when using exporters from Morrowind) or if always\_use\_file\_name\_for\_root\_name = True
 
 ### Empty Root Safeguard
 
