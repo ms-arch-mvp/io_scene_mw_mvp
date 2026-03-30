@@ -104,11 +104,11 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Exclude Decal\_1, Decal\_2, etc. These make the material name too long and are generally not very useful. These may be used for textures such as water caustics.
 * The goal is to maintain a level of uniqueness when deduplicating materials, while still grouping materials where appropriate.
 
-### Use\_Texture\_Fallbacks**
+### Use\_Texture\_Fallbacks
 
 * Mimics the standard behaviour of Morrowind: if it doesn't find DDS, then it looks for TGA, then BMP.
  
-### Use\_Texture\_Path\_In\_Material\_Name**
+### Use\_Texture\_Path\_In\_Material\_Name
 
 * Include path: if non default. Adds the path to the folder of the base texture.
 * This option has been provided and is false by default. It prevents deduplication when the texture names but paths are different. In many cases, deduplicating these is actually useful because these textures are often identical and are duplicated. It can also help unify materials to one source of truth for the textures.
