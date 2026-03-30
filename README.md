@@ -1,6 +1,6 @@
 <h1 align="center">Morrowind Blender Plugin MVP Scripts</h1>
 
-[Morrowind Visualisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) and [Export Cells](https://github.com/ms-arch-mvp/Export_Cells) rely on modifications to the [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw) import scripts. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names. Several additional nodes are included, and the default settings of the importer are to include all handled nodes. Ignore settings can be set to filter the nodes. There are also several safety fixes that aim to prevent import from ever crashes.
+[Morrowind Visualisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project), [Export Cells](https://github.com/ms-arch-mvp/Export_Cells) and [Morrowind Thumbnail Generator](https://github.com/ms-arch-mvp/Morrowind_Thumbnail_Generator) rely on modifications to the [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw) import scripts. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names. Several additional nodes are included, and the default settings of the importer are to include all handled nodes. Ignore settings can be set to filter the nodes. There are also several safety fixes that aim to prevent import from ever crashes.
 
 To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
 
