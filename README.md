@@ -57,10 +57,15 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 * Added ignore\_shadow\_meshes setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
 
-### Ignore\_Switch\_Names
+### Ignore\_Nodes
 
-* Ignores nodes under switches with given names to simplify NIFs
-* Example: ignore_switch_names = "OFF, HARVESTED, Closed"
+* Ignore any node and its subtree by name
+* Example: `ignore_nodes = "Lightning"`
+
+### Ignore\_Nodes\_Under\_Switches
+
+* Ignores children of a NiSwitchNode by name.
+* Example: `ignore_nodes_under_switches = "OFF, HARVESTED, Closed"`
 * Should be considered for Glow in the Dahrk, Graphic Herbalism etc.
 
 ### Filter\_Best\_LOD
