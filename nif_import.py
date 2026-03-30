@@ -104,9 +104,9 @@ class Importer:
     ignore_nodes = ""
     ignore_nodes_under_switches = ""
     filter_best_lod = False
-    always_use_file_name_for_root_name = False
     use_texture_fallbacks = True
     use_texture_path_in_material_name = False
+    always_use_file_name_for_root_name = False
     proxy_mode = False
     
     def __init__(self, filepath, config):
