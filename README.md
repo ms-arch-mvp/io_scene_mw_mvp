@@ -17,7 +17,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Folder Normalization
 
-* The exporter uses paths to NIFs and these need to be normalized so they are consistent. The references in Morrowind do not have consistency in terms of case or even forward slashes vs backslashes. Noramlization assumes forward slashes and lower case.
+* The exporter uses paths to NIFs and these need to be normalized so they are consistent. The references in Morrowind do not have consistency in terms of case or even forward slashes vs backslashes. Normalization assumes forward slashes and lower case.
 * It also takes prefixes of up to 3 characters and makes them lower case, otherwise this is inconsistent.
 * The rest cannot be normalized without losing the casing, which would make names less readable.
 
