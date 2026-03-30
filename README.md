@@ -23,7 +23,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Name Sanitization
 
-* Added name sanitization to remove unicode characters. This is enables safe imports as otherwise errors may be caused by non unicode characters in .nif files.
+* Added name sanitization to remove unicode characters. This is enables safe imports as otherwise errors may be caused by non unicode characters in NIF files.
 
 ### Root Name
 
@@ -107,7 +107,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Use\_Texture\_Fallbacks
 
-* Mimics the standard behaviour of Morrowind: if it doesn't find DDS, then it looks for TGA, then BMP.
+* Mimics the standard behaviour of Morrowind: if it doesn't find DDS textures, then it looks for TGA, then BMP.
  
 ### Use\_Texture\_Path\_In\_Material\_Name
 
