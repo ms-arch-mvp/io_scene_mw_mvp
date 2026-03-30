@@ -63,6 +63,7 @@ class ImportScene(bpy.types.Operator, ImportHelper):
     ignore_switch_names: bpy.props.StringProperty(default="", options={"HIDDEN"})
     filter_best_lod: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     always_use_file_name_for_root_name: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+    use_texture_fallbacks: bpy.props.BoolProperty(default=True, options={"HIDDEN"})
     use_texture_path_in_material_name: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
 
     proxy_mode: bpy.props.BoolProperty(
