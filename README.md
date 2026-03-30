@@ -49,6 +49,10 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 * Added ignore\_billboards as a new setting.
 * NiBillboardNodes can now included on import, as these can contain geometry and effects.
 
+### Ignore\_Emissive\_Color
+
+* Added ignore\_emissive\_color setting. This prevents the emissive color from being imported and can be used to normalize the appearance of meshes, as the Blender Morrowind Plugin does not handle the emissive color correctly in the renderer.
+
 ### Ignore\_Shadow\_Meshes
 
 * Added ignore\_shadow\_meshes setting. This can filter out "shadow" meshes typically found under armatures e.g. for creatures.
