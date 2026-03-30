@@ -27,7 +27,7 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Root Name
 
-* Uses the file name when no root name is present (such as when using exporters from Morrowind) or if always\_use\_file\_name\_for\_root\_name = True
+* Uses the file name when no root name is present (such as when using exporters from Morrowind) or if `always\_use\_file\_name\_for\_root\_name = True`
 
 ### Spatial Object Filtering
 
