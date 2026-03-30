@@ -15,10 +15,13 @@ for nif_file in nif_files:
         ignore_animations = True,        
         ignore_armatures = True,
         ignore_billboards = True,
-        ignore_collision_nodes = True,
-        ignore_switch_names = "OFF, HARVESTED, Closed",
+        ignore_emissive_color = False,
+        ignore_shadow_meshes = False,
+        ignore_nodes = "",
+        ignore_nodes_under_switches = "OFF, HARVESTED, Closed",
         filter_best_lod = True,
-        always_use_file_name_for_root_name = False,
+        use_texture_fallbacks = True,
         use_texture_path_in_material_name = False,
-        proxy_mode=False,
+        always_use_file_name_for_root_name = False,
+        proxy_mode = False
     )
