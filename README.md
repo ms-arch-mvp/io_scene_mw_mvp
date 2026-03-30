@@ -76,7 +76,8 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 ### Filter\_Best\_LOD
 
 * Added `filter_best_lod` setting.
-* Only imports the first LOD branch. 
+* Imports the first LOD branch only.
+* Checks if the NiLODNode structure is valid with at least two NiNode children.
 
 ### Empty Root Safeguard
 
