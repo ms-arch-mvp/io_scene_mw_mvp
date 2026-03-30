@@ -101,7 +101,8 @@ class Importer:
     ignore_billboards = False
     ignore_emissive_color = False
     ignore_shadow_meshes = False
-    ignore_switch_names = ""
+    ignore_nodes = ""
+    ignore_nodes_under_switches = ""
     filter_best_lod = False
     always_use_file_name_for_root_name = False
     use_texture_fallbacks = True
@@ -118,7 +119,8 @@ class Importer:
         self.colliders = collections.defaultdict(set)
         self.active_collection = bpy.context.view_layer.active_layer_collection.collection
         self.filepath = pathlib.Path(filepath)
-        self.ignored_switch_names = {name.strip().upper() for name in str(self.ignore_switch_names).split(",") if name.strip()}
+        self.ignored_nodes = {name.strip().upper() for name in str(self.ignore_nodes).split(",") if name.strip()}
+        self.ignored_nodes_under_switches = {name.strip().upper() for name in str(self.ignore_nodes_under_switches).split(",") if name.strip()}
 
     def execute(self):
         data = nif.NiStream()
@@ -202,8 +204,8 @@ class Importer:
                         if not (child and isinstance(child, nif.NiAVObject)):
                             continue
 
-                        if self.ignored_switch_names and isinstance(node.source, nif.NiSwitchNode):
-                            if child.name.upper() in self.ignored_switch_names:
+                        if self.ignored_nodes_under_switches and isinstance(node.source, nif.NiSwitchNode):
+                            if child.name.upper() in self.ignored_nodes_under_switches:
                                 continue
 
                         child_node = SceneNode(self, child, node)
@@ -407,12 +409,19 @@ class Importer:
         print(f"Warning: Unhandled Type: {node.source.type}")
         return False
 
+    @process.register("NiSwitchNode")
+    def process_switch(self, node):
+        if self.ignored_nodes and node.name.upper() in self.ignored_nodes:
+            return False
+        return self.process_empty(node)
+
     @process.register("NiNode")
     @process.register("NiLODNode")
-    @process.register("NiSwitchNode")
     @process.register("NiBSAnimationNode")
     @process.register("NiCollisionSwitch")
     def process_empty(self, node):
+        if self.ignored_nodes and node.name.upper() in self.ignored_nodes:
+            return False
         self.nodes[node] = Empty
 
         # detect bones via name conventions
