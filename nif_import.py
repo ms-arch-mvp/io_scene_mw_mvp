@@ -104,9 +104,10 @@ class Importer:
     ignore_switch_names = ""
     filter_best_lod = False
     always_use_file_name_for_root_name = False
+    use_texture_fallbacks = True
     use_texture_path_in_material_name = False
     proxy_mode = False
-
+    
     def __init__(self, filepath, config):
         vars(self).update(config)
         self.nodes = {}
@@ -1347,36 +1348,63 @@ class Material(SceneNode):
         slot.link = "OBJECT"
         slot.material = bl_material
 
-    @staticmethod
     def resolve_texture_path(
+        self,
         relpath,
+        use_texture_fallbacks=None,
         case_insensitive = pathlib.Path(__file__.upper()).exists()
     ):
-        # get the initial filepath
+        # determine fallback preference
+        if use_texture_fallbacks is None:
+            use_texture_fallbacks = getattr(self.importer, "use_texture_fallbacks", True)
+
+        # get the initial filepath (preserve original case and also a lowercase variant)
+        orig_path = pathlib.Path(bpy.path.native_pathsep(relpath))
         path = pathlib.Path(bpy.path.native_pathsep(relpath).lower())
 
         # discard "data files" prefix
-        if path.parts[0] == "data files":
+        if path.parts and path.parts[0] == "data files":
             path = path.relative_to("data files")
 
         # discard "textures" prefix
-        if path.parts[0] == "textures":
+        if path.parts and path.parts[0] == "textures":
             path = path.relative_to("textures")
 
-        # potential file extensions
-        suffixes = {path.suffix, ".dds", ".tga", ".bmp"}
+        # build ordered suffix list: prefer .dds -> .tga -> .bmp (include original)
+        orig = path.suffix.lower()
+        preferred = [".dds", ".tga", ".bmp"]
+        suffixes = []
+        if use_texture_fallbacks:
+            # start with preferred order, but ensure original extension is included
+            for s in preferred:
+                suffixes.append(s)
+            if orig and orig not in suffixes:
+                # put unknown original first so explicit filenames are respected
+                suffixes.insert(0, orig)
+        else:
+            # only try the original extension (if present)
+            if orig:
+                suffixes = [orig]
+            else:
+                suffixes = [""]
 
-        # evaluate final image path
+        # evaluate final image path; try original-case then lowercase for each texture path
         addon = bpy.context.preferences.addons[__package__]
         for item in addon.preferences.texture_paths:
-            abspath = item.name / path
+            base_orig = item.name / orig_path
+            base_low = item.name / path
             for suffix in suffixes:
-                abspath = abspath.with_suffix(suffix)
-                if not case_insensitive:
-                    abspath = pathlib.Path(bpy.path.resolve_ncase(str(abspath)))
-                if abspath.exists():
-                    return abspath
+                for base in (base_orig, base_low):
+                    abspath = base.with_suffix(suffix)
+                    if not case_insensitive:
+                        try:
+                            abspath = pathlib.Path(bpy.path.resolve_ncase(str(abspath)))
+                        except Exception:
+                            pass
+                    if abspath.exists():
+                        return abspath
 
+        # not found; return the original relative path under 'textures'
         return ("textures" / path)
 
 
