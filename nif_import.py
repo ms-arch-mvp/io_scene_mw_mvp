@@ -1373,38 +1373,37 @@ class Material(SceneNode):
         orig_path = pathlib.Path(bpy.path.native_pathsep(relpath))
         path = pathlib.Path(bpy.path.native_pathsep(relpath).lower())
 
-        # discard "data files" prefix
+        # discard "data files" prefix from both
         if path.parts and path.parts[0] == "data files":
             path = path.relative_to("data files")
+        if orig_path.parts and orig_path.parts[0].lower() == "data files":
+            orig_path = orig_path.relative_to(orig_path.parts[0])
 
-        # discard "textures" prefix
+        # discard "textures" prefix from both
         if path.parts and path.parts[0] == "textures":
             path = path.relative_to("textures")
+        if orig_path.parts and orig_path.parts[0].lower() == "textures":
+            orig_path = orig_path.relative_to(orig_path.parts[0])
 
-        # build ordered suffix list: prefer .dds -> .tga -> .bmp (include original)
+        # build ordered suffix list: try original first, then fallbacks if enabled
         orig = path.suffix.lower()
-        preferred = [".dds", ".tga", ".bmp"]
-        suffixes = []
         if use_texture_fallbacks:
-            # start with preferred order, but ensure original extension is included
-            for s in preferred:
-                suffixes.append(s)
-            if orig and orig not in suffixes:
-                # put unknown original first so explicit filenames are respected
-                suffixes.insert(0, orig)
+            # original extension first, then common alternatives (excluding original to avoid duplicates)
+            fallbacks = [s for s in (".dds", ".tga", ".bmp") if s != orig]
+            suffixes = ([orig] if orig else []) + fallbacks
         else:
             # only try the original extension (if present)
-            if orig:
-                suffixes = [orig]
-            else:
-                suffixes = [""]
+            suffixes = [orig] if orig else [""]
 
-        # evaluate final image path; try original-case then lowercase for each texture path
+        # evaluate final image path
+        # suffix is outer loop so the original extension is tried across ALL roots
+        # before any fallback extension is attempted
         addon = bpy.context.preferences.addons[__package__]
-        for item in addon.preferences.texture_paths:
-            base_orig = item.name / orig_path
-            base_low = item.name / path
-            for suffix in suffixes:
+        texture_paths = list(addon.preferences.texture_paths)
+        for suffix in suffixes:
+            for item in texture_paths:
+                base_orig = item.name / orig_path
+                base_low = item.name / path
                 for base in (base_orig, base_low):
                     abspath = base.with_suffix(suffix)
                     if not case_insensitive:
