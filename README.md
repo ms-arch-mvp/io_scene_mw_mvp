@@ -1,6 +1,6 @@
 <h1 align="center">Morrowind Blender Plugin MVP Scripts</h1>
 
-[Morrowind Visualisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) and [Export Cells](https://github.com/ms-arch-mvp/Export_Cells) rely on modifications to the [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw) import scripts. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names. There are also several safety fixes that aim to prevent import from ever crashes.
+[Morrowind Visualisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) and [Export Cells](https://github.com/ms-arch-mvp/Export_Cells) rely on modifications to the [Morrowind Blender Plugin](https://github.com/Greatness7/io_scene_mw) import scripts. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names. Several additional nodes are included, and the default settings of the importer are to include everything. There are also several safety fixes that aim to prevent import from ever crashes.
 
 To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
 
@@ -35,18 +35,16 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 
 ### Lights
 
-* Added light imports. This imports lights with the diffuse color and intensity. Lights can be exported using glTF and enablign the include Punctual Lights option.
+* Added light imports.
+* Imports lights with the diffuse color and intensity.
 
 ### Ignore\_Animations
 
-* Added a check for ignore\_animations at the start of create\_vertex\_morphs()
-* Ignoring animations is required, otherwise imports will fail. This extra check ensures no animations at all are imported.
+* Added a check for `ignore\_animations` at the start of `create\_vertex\_morphs()`
 
 ### Ignore\_Armatures
 
 * Added ignore\_armatures setting. This is an option to not import armatures for larger scenes.
-* Added to nif\_import.py and operators/import\_scene.py
-* This is required as multiple armatures are not yet supported by the plugin.
 
 ### Ignore\_Billboards
 
@@ -97,12 +95,12 @@ To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\script
 ### Material Names Inclusions
 
 * Various inclusions and exclusions to make material name more specific.
-* Include Diffuse: if non default. Default is #ffffff
+* Include Diffuse: if non default. Default is `#ffffff`
   \
   or
   \
   Include diffuse:Col if the material is set to use Vertex Colors
-* Include emissive: if non default. Default is #000000
+* Include emissive: if non default. Default is `#000000`
 * Include alpha: if non default. Combines NiAlphaProperty blending mode and NiMaterialProperty (Opacity)
 * Exclude Decal\_1, Decal\_2, etc. These make the material name too long and are generally not very useful. These may be used for textures such as water caustics.
 * The goal is to maintain a level of uniqueness when deduplicating materials, while still grouping materials where appropriate.
