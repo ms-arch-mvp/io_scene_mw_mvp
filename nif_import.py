@@ -198,7 +198,9 @@ class Importer:
                 if hasattr(node.source, "children"):
                     children = node.source.children
                     if self.filter_best_lod and isinstance(node.source, nif.NiLODNode):
-                        children = children[:1]
+                        ni_nodes = [c for c in children if c and c.type == "NiNode"]
+                        if len(ni_nodes) >= 2:
+                            children = children[:1]
 
                     for child in children:
                         if not (child and isinstance(child, nif.NiAVObject)):
