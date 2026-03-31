@@ -8,7 +8,7 @@ These are modified import scripts for the Morrowind Blender Plugin. Several addi
 
 The [Morrowind Visusalisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) and associated tools are reliant on these scripts.
 
-To install, extract into: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
+To install, overwrite files in: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
 
 * `scripts\import_simple.py` can be used for a quick start import, opened in the Scripting tab of Blender.<br>
 * `nif_folder` can be pointed to the output of Export Cells or any other folder containing NIF files.
