@@ -443,8 +443,8 @@ class Importer:
 
     @process.register("NiTriShape")
     def process_mesh(self, node):
-        # Skip nodes with "Tri Shadow" prefix
-        if self.ignore_tri_shadow and node.name.lower().startswith("tri shadow"):
+        # Skip "Tri Shadow" nodes or nodes named exactly "shadow"
+        if self.ignore_tri_shadow and (node.name.lower().startswith("tri shadow") or node.name.lower() == "shadow"):
             print(f"Skipping shadow mesh: {node.name}")
             return False
 
@@ -722,6 +722,25 @@ class Armature(SceneNode):
 
         # swap to edit mode to allow creation of bones
         bpy.context.view_layer.objects.active = bl_object
+        was_hidden = bl_object.hide_viewport
+        bl_object.hide_viewport = False
+
+        def find_layer_collection(layer_coll, collection):
+            if layer_coll.collection == collection:
+                return layer_coll
+            for child in layer_coll.children:
+                result = find_layer_collection(child, collection)
+                if result:
+                    return result
+            return None
+
+        layer_collection = find_layer_collection(
+            bpy.context.view_layer.layer_collection,
+            self.importer.active_collection
+        )
+        was_collection_hidden = layer_collection.hide_viewport if layer_collection else False
+        if layer_collection:
+            layer_collection.hide_viewport = False
         bpy.ops.object.mode_set(mode="EDIT")
 
         # used for calculating armature space matrices
@@ -764,6 +783,9 @@ class Armature(SceneNode):
 
         # back to object mode now that all bones exist
         bpy.ops.object.mode_set(mode="OBJECT")
+        bl_object.hide_viewport = was_hidden
+        if layer_collection:
+            layer_collection.hide_viewport = was_collection_hidden
 
         # assign node.output and apply pose transforms
         for node, name in bones.items():
