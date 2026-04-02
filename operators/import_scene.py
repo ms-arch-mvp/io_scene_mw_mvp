@@ -59,7 +59,7 @@ class ImportScene(bpy.types.Operator, ImportHelper):
     ignore_armatures: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_billboards: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_emissive_color: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
-    ignore_shadow_meshes: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+    ignore_tri_shadow: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_nodes: bpy.props.StringProperty(default="", options={"HIDDEN"})
     ignore_nodes_under_switches: bpy.props.StringProperty(default="", options={"HIDDEN"})
     filter_best_lod: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
