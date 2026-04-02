@@ -16,7 +16,7 @@ for nif_file in nif_files:
         ignore_armatures = True,
         ignore_billboards = True,
         ignore_emissive_color = False,
-        ignore_shadow_meshes = False,
+        ignore_tri_shadow = False,
         ignore_nodes = "",
         ignore_nodes_under_switches = "OFF, HARVESTED, Closed",
         filter_best_lod = True,
