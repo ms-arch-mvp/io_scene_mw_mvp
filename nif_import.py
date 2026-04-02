@@ -100,7 +100,7 @@ class Importer:
     ignore_armatures = False
     ignore_billboards = False
     ignore_emissive_color = False
-    ignore_shadow_meshes = False
+    ignore_tri_shadow = False
     ignore_nodes = ""
     ignore_nodes_under_switches = ""
     filter_best_lod = False
@@ -443,8 +443,8 @@ class Importer:
 
     @process.register("NiTriShape")
     def process_mesh(self, node):
-        # Skip nodes with "shadow" in their name
-        if self.ignore_shadow_meshes and "shadow" in node.name.lower():
+        # Skip nodes with "Tri Shadow" prefix
+        if self.ignore_tri_shadow and node.name.lower().startswith("tri shadow"):
             print(f"Skipping shadow mesh: {node.name}")
             return False
 
