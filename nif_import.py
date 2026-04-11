@@ -1468,7 +1468,6 @@ class Animation(SceneNode):
 
         for frame, text in text_data.keys.tolist():
             for name in filter(None, text.splitlines()):
-                assert len(name) < 64, f"Marker exceeds character limit ({name})"
                 action.pose_markers.new(name).frame = round(frame)
 
     def create_kf_controller(self, bl_object):
