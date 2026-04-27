@@ -103,6 +103,7 @@ class Importer:
     ignore_tri_shadow = False
     ignore_nodes = ""
     ignore_nodes_under_switches = ""
+    ignore_particles = False
     filter_best_lod = False
     use_texture_fallbacks = True
     use_texture_path_in_material_name = False
@@ -438,6 +439,12 @@ class Importer:
     @process.register("NiBillboardNode")
     def process_billboard(self, node):
         if self.ignore_billboards:
+            return False
+        return self.process_empty(node)
+    
+    @process.register("NiBSParticleNode")
+    def process_particles(self, node):
+        if self.ignore_particles:
             return False
         return self.process_empty(node)
 
