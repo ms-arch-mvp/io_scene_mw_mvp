@@ -19,6 +19,7 @@ for nif_file in nif_files:
         ignore_tri_shadow = False,
         ignore_nodes = "",
         ignore_nodes_under_switches = "OFF, HARVESTED, Closed",
+        ignore_particles = False,
         filter_best_lod = True,
         use_texture_fallbacks = True,
         use_texture_path_in_material_name = False,
