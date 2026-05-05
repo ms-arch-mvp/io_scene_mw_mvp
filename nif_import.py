@@ -120,8 +120,8 @@ class Importer:
         self.colliders = collections.defaultdict(set)
         self.active_collection = bpy.context.view_layer.active_layer_collection.collection
         self.filepath = pathlib.Path(filepath)
-        self.ignored_nodes = {name.strip().upper() for name in str(self.ignore_nodes).split(",") if name.strip()}
-        self.ignored_nodes_under_switches = {name.strip().upper() for name in str(self.ignore_nodes_under_switches).split(",") if name.strip()}
+        self.ignored_nodes = {name.strip().lower() for name in str(self.ignore_nodes).split(",") if name.strip()}
+        self.ignored_nodes_under_switches = {name.strip().lower() for name in str(self.ignore_nodes_under_switches).split(",") if name.strip()}
 
     def execute(self):
         data = nif.NiStream()
@@ -208,7 +208,7 @@ class Importer:
                             continue
 
                         if self.ignored_nodes_under_switches and isinstance(node.source, nif.NiSwitchNode):
-                            if child.name.upper() in self.ignored_nodes_under_switches:
+                            if re.sub(r'\.\d+$', '', child.name.lower()) in self.ignored_nodes_under_switches:
                                 continue
 
                         child_node = SceneNode(self, child, node)
@@ -414,7 +414,7 @@ class Importer:
 
     @process.register("NiSwitchNode")
     def process_switch(self, node):
-        if self.ignored_nodes and node.name.upper() in self.ignored_nodes:
+        if self.ignored_nodes and re.sub(r'\.\d+$', '', node.name.lower()) in self.ignored_nodes:
             return False
         return self.process_empty(node)
 
@@ -423,7 +423,9 @@ class Importer:
     @process.register("NiBSAnimationNode")
     @process.register("NiCollisionSwitch")
     def process_empty(self, node):
-        if self.ignored_nodes and node.name.upper() in self.ignored_nodes:
+        stripped = re.sub(r'\.\d+$', '', node.name.lower())
+        if (self.ignored_nodes and stripped in self.ignored_nodes) or \
+           (self.ignore_collision_nodes and stripped == "collision"):
             return False
         self.nodes[node] = Empty
 
