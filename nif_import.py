@@ -1239,7 +1239,7 @@ class Material(SceneNode):
                     continue
                 try:
                     filepath = pathlib.Path(tex_map.source.filename)
-                    texture_name = filepath.stem.lower() if self.importer.normalize_names else filepath.stem
+                    texture_name = filepath.stem.lower()
                     
                     # Skip if texture name is empty
                     if not texture_name:
