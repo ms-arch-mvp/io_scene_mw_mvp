@@ -97,6 +97,7 @@ class Importer:
     ignore_custom_normals = False
     ignore_animations = False
     # new additions:
+    normalize_names = True
     ignore_armatures = False
     ignore_billboard_nodes = False
     ignore_particle_nodes = False
@@ -581,7 +582,7 @@ class SceneNode:
 
     @property
     def name(self):
-        return sanitize_name(self.source.name, normalize=(self.parent is not None))
+        return sanitize_name(self.source.name, normalize=(self.parent is not None and self.importer.normalize_names))
 
     @property
     def bone_name(self):
@@ -1238,7 +1239,7 @@ class Material(SceneNode):
                     continue
                 try:
                     filepath = pathlib.Path(tex_map.source.filename)
-                    texture_name = filepath.stem.lower()
+                    texture_name = filepath.stem.lower() if self.importer.normalize_names else filepath.stem
                     
                     # Skip if texture name is empty
                     if not texture_name:
@@ -1248,7 +1249,10 @@ class Material(SceneNode):
 
                     # Capture the directory of the base texture only
                     if self.importer.use_texture_path_in_material_name and texture_path is None and tex_key == "base_texture":
-                        parent = pathlib.Path(bpy.path.native_pathsep(str(filepath.parent)).lower())
+                        parent_path = bpy.path.native_pathsep(str(filepath.parent))
+                        if self.importer.normalize_names:
+                            parent_path = parent_path.lower()
+                        parent = pathlib.Path(parent_path)
                         # Strip leading "textures\" prefix
                         try:
                             parent = parent.relative_to("textures")
@@ -1334,7 +1338,7 @@ class Material(SceneNode):
         if len(names) == 1 and "base_texture" in names:
             base = names["base_texture"]
             if texture_path:
-                return sanitize_name(f"{base} | path:{texture_path}")
+                return sanitize_name(f"{base} | path:{texture_path}", normalize=self.importer.normalize_names)
             return base
 
         # Build the final name, ensuring it's not empty
@@ -1345,7 +1349,7 @@ class Material(SceneNode):
             final_name = f"{final_name} | path:{texture_path}"
 
         # Sanitize the final name to ensure it's safe for Blender
-        return sanitize_name(final_name) if final_name else ""
+        return sanitize_name(final_name, normalize=self.importer.normalize_names) if final_name else ""
         
     def apply_existing_material(self, name, ni_alpha):
         """
