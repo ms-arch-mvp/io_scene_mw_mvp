@@ -97,7 +97,6 @@ class Importer:
     ignore_custom_normals = False
     ignore_animations = False
     # new additions:
-    normalize_names = True
     ignore_armatures = False
     ignore_billboard_nodes = False
     ignore_particle_nodes = False
@@ -108,6 +107,7 @@ class Importer:
     filter_best_lod = False
     use_texture_fallbacks = True
     use_texture_path_in_material_name = False
+    normalize_names = True
     always_use_file_name_for_root_name = False
     proxy_mode = False
     

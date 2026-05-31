@@ -56,7 +56,6 @@ class ImportScene(bpy.types.Operator, ImportHelper):
     ignore_collision_nodes: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_custom_normals: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_animations: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
-    normalize_names: bpy.props.BoolProperty(default=True, options={"HIDDEN"})
     ignore_armatures: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_billboard_nodes: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_particle_nodes: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
@@ -67,6 +66,7 @@ class ImportScene(bpy.types.Operator, ImportHelper):
     filter_best_lod: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     use_texture_fallbacks: bpy.props.BoolProperty(default=True, options={"HIDDEN"})
     use_texture_path_in_material_name: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+    normalize_names: bpy.props.BoolProperty(default=True, options={"HIDDEN"})
     always_use_file_name_for_root_name: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     proxy_mode: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     
