@@ -22,44 +22,33 @@ biped_axis_correction_inverse = la.inv(biped_axis_correction)
 other_axis_correction = np.array(axis_conversion('Y', 'Z', '-Z', '-Y').to_4x4(), dtype="<f")
 other_axis_correction_inverse = la.inv(other_axis_correction)
 
+def _normalize_prefix(filename, max_length=3):
+    # Lowercase prefix of up to max_length letters before an underscore
+    for n in range(1, max_length + 1):
+        if len(filename) >= n + 1 and filename[n] == '_' and filename[:n].isalpha():
+            return filename[:n].lower() + filename[n:]
+    return filename
+
 def normalize_path(path):
     if not path or not isinstance(path, str):
         return path
-    
+
     # Replace all forward slashes with backslashes
     normalized = path.replace('/', '\\')
-    
-    # Helper to normalize prefix in filename (1-3 letters + underscore)
-    def normalize_prefix(filename):
-        # Check for 1, 2, or 3-letter prefix (but not 4+)
-        if len(filename) >= 2 and filename[1] == '_' and filename[0].isalpha():
-            # 1-letter prefix: X_
-            return filename[0].lower() + filename[1:]
-        elif len(filename) >= 3 and filename[2] == '_' and filename[:2].isalpha():
-            # 2-letter prefix: TR_
-            return filename[:2].lower() + filename[2:]
-        elif len(filename) >= 4 and filename[3] == '_' and filename[:3].isalpha():
-            # 3-letter prefix: ABC_
-            return filename[:3].lower() + filename[3:]
-        return filename
-    
-    # If there are no slashes at all
+
+    # If there are no slashes, nothing path-specific to do
     if '\\' not in normalized:
-        return normalize_prefix(normalized)
-    
-    # Split into directory and filename
+        return normalized
+
+    # Split into directory and filename; lowercase the directory
     parts = normalized.rsplit('\\', 1)
     if len(parts) == 2:
         directory, filename = parts
-        # Lowercase the directory part
-        directory = directory.lower()
-        # Normalize prefix in filename
-        filename = normalize_prefix(filename)
-        return directory + '\\' + filename
-    
+        return directory.lower() + '\\' + filename
+
     return normalized
 
-def sanitize_name(name, normalize=True):
+def sanitize_name(name, normalize_prefix=False, normalize_prefix_max_length=3):
     # Remove surrogates and non-printable characters
     if not isinstance(name, str):
         name = str(name)
@@ -67,10 +56,18 @@ def sanitize_name(name, normalize=True):
     name = re.sub(r'[\ud800-\udfff]', '', name)
     # Remove other non-printable/control characters
     name = ''.join(c for c in name if c.isprintable())
-    # Normalize paths if the name contains path separators
-    if normalize:
-        name = normalize_path(name)
-    # Optionally, replace with '_' if empty
+    # Always normalize path separators and directory casing
+    name = normalize_path(name)
+    # Optionally normalize the filename prefix
+    if normalize_prefix:
+        # Extract filename if path present, apply prefix normalization, reassemble
+        if '\\' in name:
+            parts = name.rsplit('\\', 1)
+            parts[1] = _normalize_prefix(parts[1], max_length=normalize_prefix_max_length)
+            name = '\\'.join(parts)
+        else:
+            name = _normalize_prefix(name, max_length=normalize_prefix_max_length)
+    # Replace with '_' if empty
     return name or "Object"
 
 def load(context, filepath, **config):
@@ -107,7 +104,8 @@ class Importer:
     filter_best_lod = False
     use_texture_fallbacks = True
     use_texture_path_in_material_name = False
-    normalize_names = True
+    normalize_prefix = True
+    normalize_prefix_max_length = 3
     always_use_file_name_for_root_name = False
     proxy_mode = False
     
@@ -582,7 +580,7 @@ class SceneNode:
 
     @property
     def name(self):
-        return sanitize_name(self.source.name, normalize=(self.parent is not None and self.importer.normalize_names))
+        return sanitize_name(self.source.name, normalize_prefix=(self.parent is not None and self.importer.normalize_prefix), normalize_prefix_max_length=self.importer.normalize_prefix_max_length)
 
     @property
     def bone_name(self):
@@ -1250,8 +1248,7 @@ class Material(SceneNode):
                     # Capture the directory of the base texture only
                     if self.importer.use_texture_path_in_material_name and texture_path is None and tex_key == "base_texture":
                         parent_path = bpy.path.native_pathsep(str(filepath.parent))
-                        if self.importer.normalize_names:
-                            parent_path = parent_path.lower()
+                        parent_path = parent_path.lower()
                         parent = pathlib.Path(parent_path)
                         # Strip leading "textures\" prefix
                         try:
@@ -1338,7 +1335,7 @@ class Material(SceneNode):
         if len(names) == 1 and "base_texture" in names:
             base = names["base_texture"]
             if texture_path:
-                return sanitize_name(f"{base} | path:{texture_path}", normalize=self.importer.normalize_names)
+                return sanitize_name(f"{base} | path:{texture_path}", normalize_prefix=self.importer.normalize_prefix, normalize_prefix_max_length=self.importer.normalize_prefix_max_length)
             return base
 
         # Build the final name, ensuring it's not empty
@@ -1349,7 +1346,7 @@ class Material(SceneNode):
             final_name = f"{final_name} | path:{texture_path}"
 
         # Sanitize the final name to ensure it's safe for Blender
-        return sanitize_name(final_name, normalize=self.importer.normalize_names) if final_name else ""
+        return sanitize_name(final_name, normalize_prefix=self.importer.normalize_prefix, normalize_prefix_max_length=self.importer.normalize_prefix_max_length) if final_name else ""
         
     def apply_existing_material(self, name, ni_alpha):
         """
