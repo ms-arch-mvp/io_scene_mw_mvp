@@ -24,6 +24,7 @@ for nif_file in nif_files:
         use_texture_fallbacks = True,
         use_texture_path_in_material_name = False,
         normalize_prefix = True,
+        normalize_prefix_root = True,
         normalize_prefix_max_length = 3,
         always_use_file_name_for_root_name = False,
         proxy_mode = False
