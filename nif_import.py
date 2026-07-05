@@ -422,6 +422,7 @@ class Importer:
     @process.register("NiLODNode")
     @process.register("NiBSAnimationNode")
     @process.register("NiCollisionSwitch")
+    @process.register("NiSortAdjustNode")
     def process_empty(self, node):
         stripped = re.sub(r'\.\d+$', '', node.name.lower())
         if (self.ignored_nodes and stripped in self.ignored_nodes) or \
