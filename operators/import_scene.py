@@ -53,6 +53,7 @@ class ImportScene(bpy.types.Operator, ImportHelper):
         default=False,
     )
 
+    preserve_root_scale: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_collision_nodes: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_custom_normals: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     ignore_animations: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
