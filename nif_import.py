@@ -89,6 +89,7 @@ class Importer:
     vertex_precision = 0.001
     attach_keyframe_data = False
     discard_root_transforms = True
+    preserve_root_scale = False
     use_existing_materials = False
     ignore_collision_nodes = False
     ignore_custom_normals = False
@@ -127,12 +128,26 @@ class Importer:
         data = nif.NiStream()
         data.load(self.filepath)
         data.merge_properties()
+        self.discard_detached_skins(data)
+        self.repair_scene(data)
 
         # fix transforms
         if self.discard_root_transforms:
-            data.root.matrix = ID44
-            if isinstance(data.root, nif.NiNode):
+            if self.preserve_root_scale:
+                # Drop the root's world placement (translation + rotation) but
+                # keep its per-axis scale. Baked actor exports encode the actor's
+                # size on the root node as Morrowind's race weight/height model:
+                # a non-uniform scale where X/Y is build/weight and Z is height.
+                # Averaging it to a single factor (e.g. cube root) mixes width
+                # into height and gets relative heights wrong, so keep all three
+                # axes. Normal asset meshes have root scale 1.0, so this stays
+                # equivalent to zeroing the matrix.
+                scale = decompose(np.asarray(data.root.matrix, dtype="<f"))[2]
+                data.root.matrix = compose(np.zeros(3), np.eye(3), scale)
+            else:
                 data.root.matrix = ID44
+                if isinstance(data.root, nif.NiNode):
+                    data.root.matrix = ID44
 
         # attach kf file
         if self.attach_keyframe_data:
@@ -144,6 +159,21 @@ class Importer:
                 data.root.name = self.filepath.stem + self.filepath.suffix
             else:
                 data.root.name = self.filepath.stem
+
+        # bake skinned meshes into their static pose, since no armature
+        # will exist to deform them (e.g. the siltstrider's arms would
+        # otherwise show their raw bind-pose geometry near the origin)
+        if self.ignore_armatures:
+            for root in data.roots:
+                if isinstance(root, nif.NiNode):
+                    for mesh in list(root.skinned_meshes()):
+                        try:
+                            mesh.apply_skin(False)
+                        except ValueError:
+                            # skin root is not an ancestor of its bones;
+                            # nothing to bake against, import as static
+                            print(f"Warning: cannot resolve skin of '{mesh.name}', importing as static")
+                            mesh.skin = None
 
         # scale correction
         data.apply_scale(self.scale_correction)
@@ -180,6 +210,105 @@ class Importer:
 
         # set active object
         bpy.context.view_layer.objects.active = self.get_root_output(roots)
+
+    # ------
+    # REPAIR
+    # ------
+
+    @staticmethod
+    def discard_detached_skins(data):
+        """Strip skins that reference nodes outside the scene graph.
+
+        In-game "standard" NPC exports flatten the hierarchy into loose
+        world-baked trishapes but keep stale skin data pointing at
+        skeleton nodes that exist in the file only as detached objects.
+        Such skins cannot be resolved (no scene bones to bind to) and
+        would crash both import paths, so import those meshes as static
+        geometry instead.
+        """
+        in_scene = set()
+        for root in data.roots:
+            in_scene.add(id(root))
+            if isinstance(root, nif.NiAVObject):
+                in_scene.update(id(obj) for obj in root.descendants())
+
+        for mesh in data.objects_of_type(nif.NiGeometry):
+            skin = getattr(mesh, "skin", None)
+            if not (skin and getattr(skin, "root", None) and getattr(skin, "bones", None)):
+                continue
+            detached = [n for n in (skin.root, *skin.bones) if id(n) not in in_scene]
+            if detached:
+                print(f"Warning: skin of '{mesh.name}' references nodes outside the scene "
+                      f"(e.g. '{detached[0].name}'), importing as static")
+                mesh.skin = None
+
+    def repair_scene(self, data):
+        """Fix up scene graphs produced by in-game actor/cell exporters.
+
+        Such files dump the live scene graph, which differs from regular
+        asset files in two ways this importer must account for:
+
+        1. Skinned body parts keep a skin root (e.g. 'Chest') that is NOT
+           an ancestor of the skin bones (which live under a sibling
+           'Bip01' node). The es3 bind pose machinery requires the skin
+           root to be a common ancestor, so repoint it to the nearest one
+           and update the skin offset matrix accordingly.
+
+        2. Left-side body parts are wrapped in BSMirroredNode, whose
+           mirroring is implicit in the node type (the matrix itself has
+           a positive determinant). Bake the mirror into the matrix so
+           the geometry imports mirrored.
+        """
+        # bake implicit BSMirroredNode mirroring: the engine applies a
+        # uniform scale of -1 (point reflection) to these nodes at runtime;
+        # the file stores det=+1 matrices. Verified empirically against an
+        # in-game skin-deform reference export (see CLAUDE.md).
+        mirror = np.diag((-1.0, -1.0, -1.0, 1.0)).astype("<f")
+        for obj in data.objects_of_type(nif.BSMirroredNode):
+            if la.det(np.asarray(obj.matrix)[:3, :3]) > 0:
+                obj.matrix = np.asarray(obj.matrix) @ mirror
+
+        # build a parent map of the whole scene
+        parents = {}
+        for obj in data.objects_of_type(nif.NiNode):
+            for child in obj.children:
+                if child is not None:
+                    parents.setdefault(child, obj)
+
+        def ancestry(o):  # root-first chain, including o itself
+            chain = [o]
+            while o in parents:
+                o = parents[o]
+                chain.append(o)
+            chain.reverse()
+            return chain
+
+        for mesh in data.objects_of_type(nif.NiGeometry):
+            skin = getattr(mesh, "skin", None)
+            if not (skin and getattr(skin, "root", None) and getattr(skin, "bones", None)):
+                continue
+
+            chains = [ancestry(skin.root)] + [ancestry(b) for b in skin.bones]
+            if all(skin.root in chain for chain in chains):
+                continue  # already a common ancestor
+
+            # nearest common ancestor of the old root and all bones
+            new_root = None
+            for level in zip(*chains):
+                if all(n is level[0] for n in level) and isinstance(level[0], nif.NiNode):
+                    new_root = level[0]
+                else:
+                    break
+
+            if (new_root is None) or (new_root is skin.root):
+                print(f"Warning: could not repair skin root of '{mesh.name}'")
+                continue
+
+            # keep semantics: root_to_skin_new = root_to_skin_old @ inv(old_root relative to new_root)
+            offset = skin.root.matrix_relative_to(new_root)
+            skin.data.matrix = np.asarray(skin.data.matrix) @ la.inv(offset)
+            print(f"Repaired skin root of '{mesh.name}': '{skin.root.name}' -> '{new_root.name}'")
+            skin.root = new_root
 
     # -------
     # RESOLVE
@@ -264,23 +393,48 @@ class Importer:
             self.armatures.clear()
             return
 
+        def validate_bone_chains():
+            # ensure all ancestors between each bone and the root are bones,
+            # and discard bones that are not descendants of the root at all
+            # (e.g. a second skeleton elsewhere in a cell export) so that
+            # scene-level nodes never get dragged into the armature
+            for source in list(bones):
+                chain = []
+                for parent in self.get(source).parents:
+                    if parent.source is root:
+                        bones.update(chain)
+                        break
+                    chain.append(parent.source)
+                else:
+                    bones.discard(source)
+                    print(f"Warning: '{source.name}' is not a descendant of "
+                          f"'{root.name}' and will not become a bone")
+
+        # connect skin bones to the root before promoting animated
+        # descendants, so that root children which are merely ancestors
+        # of skin bones (e.g. the siltstrider's 'Movement' node, whose
+        # 'Body' subtree holds the rigid-animated legs) count as bones
+        validate_bone_chains()
+
         # consider any descendants which are animated to be bones
         # this is usually desired, and to not do so would mean we
         # have to fix the animations of any node who's transforms
         # are modified by a parent bone receiving axis correction
+        # (mirrored nodes are excluded: negative-scale bones would
+        # break matrix decomposition)
         for root_bone in filter(bones.__contains__, root.children):
             for child in root_bone.descendants():
-                if isinstance(child, nif.NiNode):
+                if isinstance(child, nif.NiNode) and not isinstance(child, nif.BSMirroredNode):
                     if child.controllers.find_type(nif.NiKeyframeController):
                         bones.add(child)
 
         # validate all bone chains
-        for node in list(map(self.get, bones)):
-            for parent in node.parents:
-                source = parent.source
-                if (source is root) or (source in bones):
-                    break
-                bones.add(source)
+        validate_bone_chains()
+
+        # bail if validation discarded everything
+        if len(bones) == 0:
+            self.armatures.clear()
+            return
 
         # order bones by heirarchy
         self.armatures[root] = dict.fromkeys(node.source for node in self.nodes if node.source in bones).keys()
@@ -423,6 +577,7 @@ class Importer:
     @process.register("NiBSAnimationNode")
     @process.register("NiCollisionSwitch")
     @process.register("NiSortAdjustNode")
+    @process.register("BSMirroredNode")
     def process_empty(self, node):
         stripped = re.sub(r'\.\d+$', '', node.name.lower())
         if (self.ignored_nodes and stripped in self.ignored_nodes) or \
@@ -774,22 +929,37 @@ class Armature(SceneNode):
             bone.tail = matrix[:3, 1] + matrix[:3, 3]  # axis + head
 
         # position bone tails
+        deferred = []
         for node, bone in bones.items():
             # edit_bones will not persist outside of edit mode
             bones[node] = bone.name
 
+            length = 0.0
             if bone.children:
                 # calculate length from children mean location
                 locations = [c.matrix_posed[:3, 3] for c in node.children if c in bones]
-                bone.length = la.norm(node.matrix_posed[:3, 3] - np.mean(locations, axis=0))
-            elif bone.parent:
-                # set length to half of the parent bone length
-                bone.length = bone.parent.length / 2
+                if locations:
+                    length = la.norm(node.matrix_posed[:3, 3] - np.mean(locations, axis=0))
 
-            if bone.length <= 1e-5:
-                print(f"Warning: Zero length bones are not supported ({bone.name})")
-                # TODO figure out a proper fix for zero length bones
-                bone.tail.z += 1e-5
+            if length > 1e-4:
+                bone.length = length
+            else:
+                deferred.append(bone)
+
+        # Bones without a usable child-derived length (childless bones, or
+        # bones whose children coincide with their head, e.g. Bip01 vs
+        # Bip01 Pelvis) get a modest display length. Never collapse a bone
+        # (or nudge a collapsed tail): that resets its rest orientation,
+        # which corrupts animations, as fcurve channels are expressed
+        # relative to the rest frame.
+        if deferred:
+            valid = [b.length for b in bl_data.edit_bones if b not in deferred]
+            fallback = float(np.median(valid)) if valid else 1.0
+            for bone in deferred:
+                if bone.parent and bone.parent not in deferred:
+                    bone.length = bone.parent.length / 2
+                else:
+                    bone.length = fallback / 2
 
         # back to object mode now that all bones exist
         bpy.ops.object.mode_set(mode="OBJECT")
@@ -935,13 +1105,17 @@ class Mesh(SceneNode):
             return
         if not len(vertex_weights):
             return
+        if not self.importer.armatures:
+            return
 
-        root = self.importer.get(self.source.skin.root)
         bones = map(self.importer.get, self.source.skin.bones)
 
         # Make Armature
+        # The modifier must target the single armature that owns the skin
+        # bones; skin.root itself may be a plain empty in actor exports.
+        armature_node = self.importer.get_armature_node()
         armature = ob.modifiers.new("", "ARMATURE")
-        armature.object = root.output.id_data
+        armature.object = armature_node.output.id_data
 
         # Vertex Weights
         for i, node in enumerate(bones):
