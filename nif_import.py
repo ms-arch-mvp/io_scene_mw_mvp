@@ -544,6 +544,24 @@ class Importer:
     # RESOLVE
     # -------
 
+    @staticmethod
+    def best_lod_children(lod_node, children):
+        # Keep only the highest-detail level of a NiLODNode. lod_levels pairs up
+        # index-for-index with children as (near, far); the level starting nearest
+        # the camera is the detailed one. Children may be any NiAVObject (a NiNode
+        # wrapping several shapes, or a bare NiTriShape), so type is not a filter.
+        present = [c for c in children if c is not None]
+        if len(present) < 2:
+            return children
+
+        levels = lod_node.lod_levels
+        if len(levels) < len(present):
+            # Malformed level data: fall back to source order (level 0 first).
+            return present[:1]
+
+        best = min(range(len(present)), key=lambda i: levels[i][0])
+        return present[best:best + 1]
+
     def resolve_nodes(self, ni_roots, parent=None):
         # Only process objects that have transformations (NiAVObject)
         root_nodes = [SceneNode(self, root, parent) for root in ni_roots 
@@ -558,9 +576,7 @@ class Importer:
                 if hasattr(node.source, "children"):
                     children = node.source.children
                     if self.filter_best_lod and isinstance(node.source, nif.NiLODNode):
-                        ni_nodes = [c for c in children if c and c.type == "NiNode"]
-                        if len(ni_nodes) >= 2:
-                            children = children[:1]
+                        children = self.best_lod_children(node.source, children)
 
                     for child in children:
                         if not (child and isinstance(child, nif.NiAVObject)):
