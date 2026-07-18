@@ -130,6 +130,7 @@ class Importer:
         data.merge_properties()
         self.discard_detached_skins(data)
         self.repair_scene(data)
+        self.apply_hierarchy_scales(data)
 
         # fix transforms
         if self.discard_root_transforms:
@@ -310,6 +311,235 @@ class Importer:
             print(f"Repaired skin root of '{mesh.name}': '{skin.root.name}' -> '{new_root.name}'")
             skin.root = new_root
 
+    @staticmethod
+    def apply_hierarchy_scales(data):
+        """Freeze non-root node scales into the hierarchy.
+
+        NIF nodes may carry a uniform scale, but Blender rest bones are
+        orthonormal, so any scale inside an armature silently breaks the
+        animation math: static matrices compensate, while fcurve values
+        come out in unscaled bone space and the pose drifts apart down
+        the chain.
+
+        Two flavors exist (e.g. the sky minotaur):
+        - scale embedded in a non-orthonormal rotation matrix. If the
+          node's rotation is keyframe-animated, the engine overwrites
+          the rotation while animating, so the embedded scale never
+          applies in game -- drop it. On static nodes it does apply --
+          treat it like a real scale.
+        - the actual scale field. The engine applies it to the whole
+          subtree, so push it down: child local translations and
+          keyframe translations scale by the inherited factor, and leaf
+          geometry absorbs the accumulated product into its vertex data.
+
+        World transforms are unchanged. Roots keep their scale (it
+        becomes Blender object scale, which is fine). Vanilla assets
+        have scale 1.0 everywhere, making this a no-op.
+        """
+        import copy
+
+        def embedded_scale(obj):
+            return abs(la.det(np.asarray(obj.rotation, dtype=np.float64))) ** (1.0 / 3.0)
+
+        def is_uniform(obj):
+            r = np.asarray(obj.rotation, dtype=np.float64)
+            axes = la.norm(r, axis=0)
+            return float(axes.max() - axes.min()) < 1e-3
+
+        def is_animated(obj):
+            if not hasattr(obj, "controllers"):
+                return False
+            kf = obj.controllers.find_type(nif.NiKeyframeController)
+            if not (kf and kf.data):
+                return False
+            d = kf.data
+            return bool(d.rotations.euler_data or len(d.rotations.keys)
+                        or len(d.translations.keys) or len(d.scales.keys))
+
+        subtree_animated_cache = {}
+
+        def subtree_animated(obj):
+            key = id(obj)
+            cached = subtree_animated_cache.get(key)
+            if cached is not None:
+                return cached
+            result = is_animated(obj)
+            if not result and isinstance(obj, nif.NiNode):
+                result = any(
+                    subtree_animated(c) for c in obj.children
+                    if c is not None and isinstance(c, nif.NiAVObject)
+                )
+            subtree_animated_cache[key] = result
+            return result
+
+        def freezable(obj):
+            # Only freeze uniform scale that sits inside animated content
+            # (skeletons): that is where Blender's orthonormal rest bones
+            # break the fcurve math. Non-uniform scale (NPC race
+            # weight/height and the inverse baked into skinned part
+            # nodes) and scale on purely static subtrees import correctly
+            # as plain object scale -- leave those exactly as before.
+            if abs(obj.scale * embedded_scale(obj) - 1.0) <= 1e-4:
+                return False
+            if not is_uniform(obj):
+                if subtree_animated(obj):
+                    print(f"Warning: non-uniform scale on animated node '{obj.name}' cannot be frozen")
+                return False
+            return subtree_animated(obj)
+
+        roots = [root for root in data.roots if isinstance(root, nif.NiNode)]
+        if not any(
+            freezable(obj)
+            for root in roots
+            for obj in root.descendants()
+            if isinstance(obj, nif.NiAVObject)
+        ):
+            return
+
+        seen_data = {}  # id(geometry data) -> factor it was baked with
+        factors = {}    # id(node) -> accumulated scale frozen into it
+
+        def freeze(node, inherited):
+            if abs(inherited - 1.0) > 1e-6:
+                node.translation = node.translation * inherited
+                if node.bounding_volume:
+                    node.bounding_volume.apply_scale(inherited)
+                for controller in node.controllers:
+                    if isinstance(controller, nif.NiKeyframeController) and controller.data:
+                        controller.data.translations.apply_scale(inherited)
+
+            frozen = freezable(node)
+            own = 1.0
+            if frozen:
+                # normalize scale hidden in the rotation matrix
+                embed = embedded_scale(node)
+                if abs(embed - 1.0) > 1e-4:
+                    node.rotation = node.rotation / embed
+
+                own = node.scale * embed
+                kf = node.controllers.find_type(nif.NiKeyframeController)
+                kfd = kf.data if (kf and kf.data) else None
+                if kfd is not None and len(kfd.scales.keys):
+                    svals = kfd.scales.keys[:, 1]
+                    if float(svals.max() - svals.min()) < 1e-3:
+                        # Constant scale animation (e.g. the minotaur's 'Root
+                        # Bone': static rotation embeds 2.0 AND scale keys hold
+                        # a constant 2.0 -- the same scale expressed twice).
+                        # Fold the animated value into the static freeze and
+                        # drop the keys, so the scale is applied exactly once.
+                        s_anim = float(svals[0])
+                        kfd.scales.keys = kfd.scales.keys[:0]
+                        if abs(s_anim - own) > 1e-3:
+                            print(f"Warning: '{node.name}' static scale {own:.3f} != animated scale {s_anim:.3f}; using animated")
+                        own = node.scale * s_anim
+                    elif abs(embed - 1.0) > 1e-4:
+                        # variable scale animation cannot be frozen; keep the
+                        # keys and only report the (unfixable) embedded part
+                        print(f"Warning: '{node.name}' has variable scale animation; import may be inexact")
+                elif abs(embed - 1.0) > 1e-4:
+                    rot = kfd.rotations if kfd is not None else None
+                    if rot is not None and (rot.euler_data or len(rot.keys)):
+                        # rotation-animated with no scale keys: the engine
+                        # replaces the rotation while animating, so the
+                        # embedded scale never renders -- discard it
+                        print(f"Discarding junk rotation scale {embed:.3f} on animated node '{node.name}'")
+                        own = node.scale
+                    else:
+                        print(f"Freezing rotation scale {embed:.3f} of static node '{node.name}'")
+
+            # total = scale removed from this node's frame by the freeze;
+            # un-frozen nodes keep their own scale (only inherited applies)
+            total = inherited * own
+            factors[id(node)] = total
+            if isinstance(node, nif.NiNode):
+                if frozen:
+                    node.scale = 1.0
+                for child in node.children:
+                    if child is not None and isinstance(child, nif.NiAVObject):
+                        freeze(child, total)
+            elif abs(total - 1.0) > 1e-6 and getattr(node, "data", None) is not None:
+                # geometry leaf: bake the accumulated scale into vertices
+                prior = seen_data.get(id(node.data))
+                if prior is None:
+                    node.data.apply_scale(total)
+                    seen_data[id(node.data)] = total
+                elif abs(prior - total) > 1e-6:
+                    # instanced data used at a different accumulated scale
+                    node.data = copy.deepcopy(node.data)
+                    node.data.apply_scale(total / prior)
+                    seen_data[id(node.data)] = total
+                morpher = node.controllers.find_type(nif.NiGeomMorpherController)
+                if morpher and morpher.data:
+                    morpher.data.apply_scale(total)
+                if frozen:
+                    node.scale = 1.0
+
+        for root in roots:
+            print(f"Applying hierarchy scales under '{root.name}'")
+            for child in root.children:
+                if child is not None and isinstance(child, nif.NiAVObject):
+                    freeze(child, 1.0)
+
+        # Rescale skin bind matrices to match the frozen bones (the
+        # world-invariant counterpart of the freeze: bones lost factor
+        # f_bone from their matrices, meshes gained f_mesh in their
+        # vertex data). Then normalize any residual scale left in the
+        # binds into the mesh's bind-space vertex data -- assets differ
+        # in where they put the scale (the minotaur's binds carry the
+        # inverse of the skeleton scale; the seacrab's binds are unit
+        # with the scale only on the skin root), and the bind-pose
+        # machinery requires orthonormal binds either way.
+        skin_seen = {}  # id(geometry data) -> residual factor baked
+        for mesh in data.objects_of_type(nif.NiGeometry):
+            skin = getattr(mesh, "skin", None)
+            if not (skin and getattr(skin, "root", None)
+                    and getattr(skin, "bones", None) and getattr(skin, "data", None)):
+                continue
+            f_mesh = factors.get(id(mesh), 1.0)
+
+            residual = None
+            new_binds = []
+            for bone, bone_data in zip(skin.bones, skin.data.bone_data):
+                f_bone = factors.get(id(bone), 1.0)
+                m = np.asarray(bone_data.matrix, dtype=np.float64).copy()
+                m[:3, :] *= f_bone
+                m[:3, :3] /= f_mesh
+                r = abs(la.det(m[:3, :3])) ** (1.0 / 3.0)
+                residual = r if residual is None else residual
+                new_binds.append(m)
+
+            if residual is None:
+                continue
+            if abs(residual - 1.0) > 1e-4:
+                # fold the residual into the bind-space vertex data
+                print(f"Normalizing residual bind scale {residual:.3f} of '{mesh.name}'")
+                for m in new_binds:
+                    m[:3, :3] /= residual
+                if getattr(mesh, "data", None) is not None:
+                    prior = skin_seen.get(id(mesh.data))
+                    if prior is None:
+                        mesh.data.apply_scale(residual)
+                        skin_seen[id(mesh.data)] = residual
+                    elif abs(prior - residual) > 1e-6:
+                        mesh.data = copy.deepcopy(mesh.data)
+                        mesh.data.apply_scale(residual / prior)
+                        skin_seen[id(mesh.data)] = residual
+
+            changed = abs(f_mesh - 1.0) > 1e-6 or abs(residual - 1.0) > 1e-4
+            for bone, bone_data, m in zip(skin.bones, skin.data.bone_data, new_binds):
+                if changed or abs(factors.get(id(bone), 1.0) - 1.0) > 1e-6:
+                    bone_data.matrix = m
+
+            # root_to_skin relates skin-root space to mesh space; both may
+            # have been rescaled by the freeze (crab: skin.root is 'Bip01'
+            # itself, factor 3)
+            f_root = factors.get(id(skin.root), 1.0)
+            if abs(f_mesh - 1.0) > 1e-6 or abs(f_root - 1.0) > 1e-6:
+                m = np.asarray(skin.data.matrix, dtype=np.float64).copy()
+                m[:3, :] *= f_mesh
+                m[:3, :3] /= f_root
+                skin.data.matrix = m
+
     # -------
     # RESOLVE
     # -------
@@ -486,6 +716,40 @@ class Importer:
         root = self.get_armature_node()
         bones = list(self.iter_bones(root))
 
+        # Aim each non-biped bone's corrected Y axis (the Blender bone
+        # axis) at the mean of its child bones, so bone sticks follow the
+        # limbs like NifSkope's joint lines -- custom rigs (minotaur,
+        # seacrab) have arbitrary bind axes and the fixed correction
+        # leaves their sticks pointing sideways. Purely a change of rest
+        # frame: the same per-bone correction feeds the animation
+        # conversion below, so poses and animations are unaffected.
+        for node in bones:
+            if "Bip01" in node.name:
+                continue
+            positions = [c.matrix_posed[:3, 3] for c in node.children if hasattr(c, "matrix_posed")]
+            if not positions:
+                continue
+            direction = np.mean(positions, axis=0) - node.matrix_posed[:3, 3]
+            length = la.norm(direction)
+            if length < 1e-5:
+                continue
+            # child direction in the bone's local frame -> corrected Y column
+            y = node.matrix_posed[:3, :3].T @ (direction / length)
+            y = y / la.norm(y)
+            # pick the remaining axes with minimal twist vs the default correction
+            x = other_axis_correction[:3, 0].astype(np.float64)
+            x = x - np.dot(x, y) * y
+            if la.norm(x) < 1e-5:
+                x = other_axis_correction[:3, 2].astype(np.float64)
+                x = x - np.dot(x, y) * y
+            x = x / la.norm(x)
+            z = np.cross(x, y)
+            correction = np.identity(4, dtype="<f")
+            correction[:3, 0] = x
+            correction[:3, 1] = y
+            correction[:3, 2] = z
+            node.axis_correction_override = correction
+
         # apply bone axis corrections
         for node in reversed(bones):
             node.matrix_posed = node.matrix_posed @ node.axis_correction
@@ -524,6 +788,13 @@ class Importer:
                     t.out_tans[:] = t.out_tans @ rotation
 
             r = kf_controller.data.rotations
+            if r.euler_data:
+                # Euler-keyed rotations expose no .values, so they would skip
+                # the corrections below and reach Blender in raw NIF space
+                # (mangling the animation exactly like unpromoted rigid nodes
+                # once did). Bones need quaternions anyway -- convert now so
+                # the standard correction path applies.
+                r.convert_to_quaternions()
             if len(r.values):
                 # apply axis correction
                 axis_fix = nif_utils.quaternion_from_matrix(node.axis_correction)
@@ -792,12 +1063,19 @@ class SceneNode:
 
     @property
     def axis_correction(self):
+        override = self.__dict__.get("axis_correction_override")
+        if override is not None:
+            return override
         if "Bip01" in self.name:
             return biped_axis_correction
         return other_axis_correction
 
     @property
     def axis_correction_inverse(self):
+        override = self.__dict__.get("axis_correction_override")
+        if override is not None:
+            # pure rotation: inverse == transpose
+            return np.ascontiguousarray(override.T)
         if "Bip01" in self.name:
             return biped_axis_correction_inverse
         return other_axis_correction_inverse
