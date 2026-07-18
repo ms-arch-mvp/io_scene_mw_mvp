@@ -550,17 +550,21 @@ class Importer:
         # index-for-index with children as (near, far); the level starting nearest
         # the camera is the detailed one. Children may be any NiAVObject (a NiNode
         # wrapping several shapes, or a bare NiTriShape), so type is not a filter.
-        present = [c for c in children if c is not None]
-        if len(present) < 2:
-            return children
-
         levels = lod_node.lod_levels
-        if len(levels) < len(present):
-            # Malformed level data: fall back to source order (level 0 first).
-            return present[:1]
+        # Pair by ORIGINAL index: a null child still consumes a level slot, so
+        # compacting the list before indexing lod_levels would misalign them.
+        paired = [(c, levels[i]) for i, c in enumerate(children)
+                  if c is not None and i < len(levels)]
 
-        best = min(range(len(present)), key=lambda i: levels[i][0])
-        return present[best:best + 1]
+        if len(paired) < 2:
+            # Nothing to choose between, or level data too short to trust.
+            present = [c for c in children if c is not None]
+            return present[:1] if len(present) > 1 else children
+
+        # Smallest near-range is the detailed level; on a tie prefer the one
+        # visible over the longer distance (a far == near level never renders).
+        best = min(paired, key=lambda p: (p[1][0], -p[1][1]))[0]
+        return [best]
 
     def resolve_nodes(self, ni_roots, parent=None):
         # Only process objects that have transformations (NiAVObject)
