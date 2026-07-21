@@ -1,12 +1,12 @@
 <h1 align="center">Morrowind Blender Plugin MVP Scripts</h1>
 
 <p align="center">
-  <a href="https://ms-arch.gitbook.io/morrowind-visualisation-project/io_scene_mw_mvp/functions">Documentation</a>
+  <a href="https://ms-arch.gitbook.io/morrowvis/io_scene_mw_mvp/functions">Documentation</a>
 </p>
 
 These are modified import scripts for the Morrowind Blender Plugin. Several additional nodes are included, and the default settings of the importer are to include all handled nodes. Ignore settings can be set to filter the nodes. There are also several safeguards that aim to minimise errors. These modifications are designed to be non destructive additions, and also take advantage of Blender 5's longer data-block names.
 
-[Morrowind Visusalisation Project](https://ms-arch.gitbook.io/morrowind-visualisation-project) is reliant on these scripts.
+[Morrowind Visusalisation Project](https://ms-arch.gitbook.io/morrowvis) is reliant on these scripts.
 
 To install, overwrite files in: `AppData\Roaming\Blender Foundation\Blender\5.0\scripts\addons\io_scene_mw`
 
