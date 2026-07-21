@@ -1,4 +1,4 @@
-<h1 align="center">Morrowind Blender Plugin MVP Scripts</h1>
+<h1 align="center">Morrowind Blender Plugin Morrowvis Scripts</h1>
 
 <p align="center">
   <a href="https://ms-arch.gitbook.io/morrowvis/io_scene_mw_mvp/functions">Documentation</a>
